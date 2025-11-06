@@ -8,10 +8,12 @@ import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.DishFlavor;
+import com.sky.entity.Setmeal;
 import com.sky.exception.DeletionNotAllowedException;
 import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealDishMapper;
+import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
@@ -34,6 +36,8 @@ public class DishServiceImpl implements DishService {
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private SetmealMapper setmealMapper;
 
     @Override
     @Transactional
@@ -120,14 +124,39 @@ public class DishServiceImpl implements DishService {
 
     }
 
-    @Override
+    /**
+     * 菜品的起售和停售
+     *
+     * @param status
+     * @param id
+     */
+    @Transactional
     public void startOrStop(Integer status, Long id) {
-        Dish dish = Dish.builder()
+
+        List<Long> dishId = new ArrayList<Long>();
+        dishId.add(id);
+
+        //菜品停售，则包含菜品的套餐同时停售
+        if (status == StatusConstant.DISABLE) {
+            List<Long> setmealIds = setmealDishMapper.getSetmealIdsByDishIds(dishId);
+            if (setmealIds != null && setmealIds.size() > 0) {
+                setmealIds.forEach(Id -> {
+                    Setmeal setmeal = Setmeal.builder()
+                            .id(Id)
+                            .status(status)
+                            .build();
+                    setmealMapper.update(setmeal);
+                });
+            }
+        }
+
+        Dish dish=Dish.builder()
                 .id(id)
                 .status(status)
                 .build();
-        dishMapper.startOrStop(status,id);
+        dishMapper.update(dish);
     }
+
 
     /**
      * 根据分类id查询菜品

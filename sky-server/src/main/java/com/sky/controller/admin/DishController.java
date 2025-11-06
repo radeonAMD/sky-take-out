@@ -12,9 +12,11 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.formula.functions.T;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 菜品管理
@@ -27,6 +29,8 @@ public class DishController {
 
     @Autowired
     private DishService dishService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
 
 
@@ -35,6 +39,9 @@ public class DishController {
     public Result save(@RequestBody DishDTO dishDTO){
         log.info("新增菜品：{}",dishDTO);
         dishService.saveWithFlavor(dishDTO);
+
+        String key = "dish_" + dishDTO.getCategoryId();
+        redisTemplate.delete(key);
         return Result.success();
     }
 
@@ -50,6 +57,9 @@ public class DishController {
     public Result delete(@RequestParam List<Long> ids){
         log.info("批量删除菜品{}",ids);
         dishService.deleteBatch(ids);
+
+        //清理所有以Dish_开头的Redis数据
+        cleanCache("dish_*");
         return Result.success();
     }
     @GetMapping("/{id}")
@@ -64,17 +74,25 @@ public class DishController {
     public Result update(@RequestBody DishDTO dishDTO){
         log.info("修改菜品{}",dishDTO);
         dishService.updateWithFlavor(dishDTO);
+        cleanCache("dish_*");
         return Result.success();
     }
 
-    @PostMapping("/status/{status}")
-    @ApiOperation("起售、停售菜品")
-    public Result startOrStop(@PathVariable Integer status,
-                                @RequestParam("id") Long id) {
-        log.info("起售、停售菜品{}",id);
+    /**
+     * 菜品的起售和停售
+     * @param status
+     * @param id
+     * @return
+     */
+    @PostMapping("status/{status}")
+    @ApiOperation("菜品的起售和停售")
+    public Result<String> startOrStop(@PathVariable Integer status,Long id){
+        log.info("起售或停售菜品：{}",id);
         dishService.startOrStop(status,id);
+        cleanCache("dish_*");
         return Result.success();
     }
+
 
     /**
      * 根据分类id查询菜品
@@ -88,4 +106,11 @@ public class DishController {
         return Result.success(list);
     }
 
+    private void cleanCache(String pattern){
+        Set keys = redisTemplate.keys(pattern);
+        redisTemplate.delete(keys);
+    }
+
 }
+
+
