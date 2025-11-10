@@ -34,4 +34,7 @@ public interface OrderService {
 
     PageResult pageQuery4User(int page, int pageSize, Integer status);
 
+    void cancel(Long id) throws Exception;
+
+    void repetition(Long id);
 }

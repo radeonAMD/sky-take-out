@@ -81,6 +81,7 @@ public class OrderServiceImpl implements OrderService {
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
         orders.setUserId(userId);
+        orders.setAddress(getAddrass(addressBook.getId()));
         orderMapper.insert(orders);
         //向订单明细表插入n条数据
         List<OrderDetail> orderDetailList = new ArrayList<>();
@@ -171,8 +172,13 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderVO orderDetail(Long id) {
+        OrderVO orderVO = orderMapper.getById(id);
+        if (orderVO != null){
+            List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+            orderVO.setOrderDetailList(orderDetailList);
+        }
 
-        return null;
+        return orderVO;
     }
 
     @Override
@@ -195,6 +201,90 @@ public class OrderServiceImpl implements OrderService {
         }
         return new PageResult(page.getTotal(), list);
     }
+
+    /**
+     * 用户取消订单
+     *
+     * @param id
+     */
+    public void cancel(Long id) throws Exception {
+        // 根据id查询订单
+        Orders ordersDB = orderMapper.getById(id);
+
+        // 校验订单是否存在
+        if (ordersDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        //订单状态 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消
+        if (ordersDB.getStatus() > 2) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+
+        //以上验证都通过后，此时订单处于待支付和待接单状态下
+        Orders orders = new Orders();
+        orders.setId(ordersDB.getId());
+
+        // 订单处于待接单状态下取消，需要进行退款
+        /*if (ordersDB.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
+            //调用微信支付退款接口
+            weChatPayUtil.refund(
+                    ordersDB.getNumber(), //商户订单号
+                    ordersDB.getNumber(), //商户退款单号
+                    new BigDecimal(0.01),//退款金额，单位 元
+                    new BigDecimal(0.01));//原订单金额
+
+            //支付状态修改为 退款
+            orders.setPayStatus(Orders.REFUND);
+        }*/
+
+        // 更新订单状态、取消原因、取消时间
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelReason("用户取消");
+        orders.setCancelTime(LocalDateTime.now());
+        orderMapper.update(orders);
+    }
+
+    /**
+     * 再来一单
+     * @param id
+     */
+    @Override
+    public void repetition(Long id) {
+        Long userId=BaseContext.getCurrentId();
+        List<OrderDetail> orderDetailList=orderDetailMapper.getByOrderId(id);
+        //将订单详情转换成购物车对象
+        //用于存储转换后的购物车对象列表
+        List<ShoppingCart> shoppingCartList = new ArrayList<>();
+        // 遍历订单详情列表
+        for (int i = 0; i < orderDetailList.size(); i++) {
+            // 获取当前订单详情对象
+            OrderDetail orderDetail = orderDetailList.get(i);
+            // 新建购物车对象
+            ShoppingCart shoppingCart = new ShoppingCart();
+            // 将原订单详情里的属性复制到购物车对象，忽略"id"属性
+            BeanUtils.copyProperties(orderDetail, shoppingCart, "id");
+            // 设置用户ID
+            shoppingCart.setUserId(userId);
+            // 设置创建时间为当前时间
+            shoppingCart.setCreateTime(LocalDateTime.now());
+            // 将转换好的购物车对象添加到列表中
+            shoppingCartList.add(shoppingCart);
+        }
+        shoppingCartMapper.insertBatch(shoppingCartList);
+    }
+
+    private String getAddrass(Long addressBookId){
+        AddressBook addressBook = addressBookMapper.getById(addressBookId);
+        if (addressBook == null) {
+            return "";
+        }
+        String address = addressBook.getProvinceName() + addressBook.getCityName() +
+                addressBook.getDistrictName() + addressBook.getDetail();
+        return address;
+    }
+
 
 
 }
