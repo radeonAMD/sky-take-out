@@ -64,11 +64,8 @@
             <if test="status != null">
                 and status = #{status}
             </if>
-            <if test="beginTime != null">
-                and order_time = #{beginTime}
-            </if>
-            <if test="endTime != null">
-                and order_time = #{endTime}
+            <if test="beginTime != null and endTime != null">
+                and order_time between #{beginTime} and #{endTime}
             </if>
         </where>
         order by order_time desc
