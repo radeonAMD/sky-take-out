@@ -19,3 +19,7 @@ sky:
   wechat:
     appid: ${WECHAT_APPID}
     secret: ${WECHAT_APPSECRET}
+  shop:
+    address: 浙江省杭州市钱塘区杭州电子科技大学下沙校区学生生活区
+  baidu:
+    ak: TOcC7ZCYZ8eqMuYGxIhD17iJ6kQspYaA
