@@ -18,7 +18,7 @@ public class OrderTask {
     @Autowired
     private OrderMapper orderMapper;
     //每分钟触发一次
-    @Scheduled(cron = "0 * * * * ?")
+    //@Scheduled(cron = "0 * * * * ?")
     public void processTimeoutOrder(){
         log.info("定时处理支付超时订单:{}", LocalDateTime.now());
 
@@ -36,7 +36,7 @@ public class OrderTask {
     }
 
 
-    @Scheduled(cron = "0 0 1 * * ?")
+    //@Scheduled(cron = "0 0 1 * * ?")
     public void processDeliveryOrder(){
         log.info("定时处理处于待派送状态的订单:{}", LocalDateTime.now());
         List<Orders> ordersList = orderMapper.getByStatusAndTimeLT(Orders.DELIVERY_IN_PROGRESS, LocalDateTime.now().minusMinutes(60));
