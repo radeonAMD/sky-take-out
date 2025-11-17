@@ -31,13 +31,16 @@ public class CommonController {
         try {
             String originalFilename = file.getOriginalFilename();
             //截取后缀
-            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String extension = null;
+            if (originalFilename != null) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
             String objectName = UUID.randomUUID().toString() + extension;
 
             String filePath = aliOssUtil.upload(file.getBytes(), objectName);
             return Result.success(filePath);
         } catch (IOException e) {
-            log.error("文件上传失败：{}",e);
+            log.error("文件上传失败:",e);
         }
         return Result.error("上传失败");
     }

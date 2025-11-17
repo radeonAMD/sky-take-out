@@ -49,4 +49,12 @@ public interface OrderMapper {
 
     @Select("select * from orders")
     List<Orders> getAllOrders();
+
+    /**
+     * 根据状态查询支付超时订单
+     * @param status
+     * @return
+     */
+    @Select("select * from orders where status = #{status} and order_time < #{orderTime}")
+    List<Orders> getByStatusAndTimeLT(Integer status, LocalDateTime orderTime);
 }
